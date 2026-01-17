@@ -8,7 +8,7 @@ const client = new Client({
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = '1452477431096152196';
 const TECH_CHANNEL_ID = '1371178076893085846';
-const START_DATE = new Date('2026-01-19');
+const START_DATE = new Date('2026-01-10');
 
 // Week descriptions
 const weekDescriptions = {
