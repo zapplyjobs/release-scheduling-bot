@@ -41,6 +41,16 @@ client.once('ready', async () => {
   const releases = getReleasesForDate(today);
   
   console.log('Today:', today.toDateString());
+
+// TEMP TEST: Create a test thread
+const testThread = await channel.threads.create({
+  name: '🐙 R99W1-TEST',
+  autoArchiveDuration: 10080,
+  reason: 'Test thread'
+});
+await testThread.send('🚀 Test thread created by bot');
+console.log('Test thread created!');
+
   console.log('Releases to create:', releases);
   
   for (const { release, week } of releases) {
