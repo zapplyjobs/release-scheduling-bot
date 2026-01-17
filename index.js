@@ -6,7 +6,7 @@ const client = new Client({
 });
 
 // === CONFIGURATION ===
-const BOT_TOKEN = 'MTQ2MTk2Nzc3OTIwMzY0OTczNQ.G49TTb.wIV0IXwwlpIg28u5MNh6Q9ZD-WUeXCHoVKxXkI'; // Paste your token
+const BOT_TOKEN = process.env.BOT_TOKEN || 'REPLACE_WITH_TOKEN_FOR_LOCAL_TESTING';
 const CHANNEL_ID = '1452477431096152196'; // Channel where threads are created
 const TECH_CHANNEL_ID = '1371178076893085846'; // Tech channel for @everyone pings
 const START_DATE = new Date('2026-01-19'); // Monday R1W1 starts - change this to move release start
