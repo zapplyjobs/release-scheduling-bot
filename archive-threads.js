@@ -1,4 +1,5 @@
 const { Client, GatewayIntentBits } = require('discord.js');
+
 const client = new Client({ 
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
 });
@@ -11,7 +12,7 @@ client.once('ready', async () => {
   console.log(`Bot is online as ${client.user.tag}`);
   
   const channel = await client.channels.fetch(CHANNEL_ID);
-  const sevenDaysAgo = Date.now() - (0 * 24 * 60 * 60 * 1000);
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
   
   // Fetch active threads
   const activeThreads = await channel.threads.fetchActive();
@@ -20,7 +21,7 @@ client.once('ready', async () => {
   for (const [id, thread] of activeThreads.threads) {
     console.log(`Checking thread: ${thread.name}, created: ${new Date(thread.createdTimestamp).toDateString()}`);
     
-    // Skip if already archived or not a release thread
+    // Skip if already archived
     if (thread.archived) {
       console.log(`Skipped ${thread.name} - already archived`);
       continue;
