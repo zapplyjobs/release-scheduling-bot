@@ -2,14 +2,25 @@ name: Release Thread Bot
 
 on:
   schedule:
-    # Runs every Monday at 9am Pakistan time (4am UTC)
+    # Create threads: Monday 9am Pakistan time (4am UTC)
     - cron: '0 4 * * 1'
-  workflow_dispatch: # Allows manual trigger for testing
+    # Archive threads: Daily at midnight Pakistan time (7pm UTC previous day)
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to run'
+        required: true
+        default: 'create'
+        type: choice
+        options:
+          - create
+          - archive
 
 jobs:
   create-thread:
+    if: github.event.schedule == '0 4 * * 1' || github.event.inputs.action == 'create'
     runs-on: ubuntu-latest
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,3 +37,23 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: node create-thread.js
+
+  archive-threads:
+    if: github.event.schedule == '0 19 * * *' || github.event.inputs.action == 'archive'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm install discord.js
+      
+      - name: Archive old threads
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: node archive-threads.js
