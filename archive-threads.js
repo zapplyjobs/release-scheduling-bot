@@ -12,7 +12,7 @@ client.once('ready', async () => {
   console.log(`Bot is online as ${client.user.tag}`);
   
   const channel = await client.channels.fetch(CHANNEL_ID);
-  const sevenDaysAgo = Date.now() - (1 * 60 * 1000);
+  const sevenDaysAgo = Date.now() - (1 * 60 * 1000); // TEST
   
   // Fetch active threads
   const activeThreads = await channel.threads.fetchActive();
