@@ -74,7 +74,7 @@ client.once('ready', async () => {
       day: 'numeric' 
     });
     
-    // Create stats message
+    // Create stats message.
     const statsMessage = `📊 **Daily Server Stats - ${guild.name}**\n` +
       `📅 ${today}\n\n` +
       `👥 **Total Members:** ${totalMembers}\n` +
