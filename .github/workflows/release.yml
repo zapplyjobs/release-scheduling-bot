@@ -6,6 +6,8 @@ on:
     - cron: '0 4 * * 1'
     # Archive threads: Daily at midnight Pakistan time (7pm UTC previous day)
     - cron: '0 19 * * *'
+    # Server stats: Daily at 9am Pakistan time (4am UTC)
+    - cron: '0 4 * * *'
   workflow_dispatch:
     inputs:
       action:
@@ -16,6 +18,7 @@ on:
         options:
           - create
           - archive
+          - stats
 
 jobs:
   create-thread:
@@ -57,3 +60,23 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: node archive-threads.js
+
+  server-stats:
+    if: github.event.schedule == '0 4 * * *' || github.event.inputs.action == 'stats'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install dependencies
+        run: npm install discord.js
+      
+      - name: Post server stats
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: node server-stats.js
