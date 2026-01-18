@@ -61,7 +61,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: node archive-threads.js
 
-  server-stats:
+server-stats:
     if: github.event.schedule == '0 5 * * *' || github.event.inputs.action == 'stats'
     runs-on: ubuntu-latest
     steps:
@@ -79,4 +79,6 @@ jobs:
       - name: Post server stats
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GIST_ID: ${{ secrets.GIST_ID }}
+          GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: node server-stats.js
