@@ -6,7 +6,7 @@ on:
     - cron: '0 4 * * 1'
     # Archive threads: Daily at midnight Pakistan time (7pm UTC previous day)
     - cron: '0 19 * * *'
-    # Server stats: Daily at 9am Pakistan time (4am UTC)
+    # Server stats: Daily at 10am Pakistan time (5am UTC)
     - cron: '0 5 * * *'
   workflow_dispatch:
     inputs:
@@ -61,7 +61,7 @@ jobs:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: node archive-threads.js
 
-server-stats:
+  server-stats:
     if: github.event.schedule == '0 5 * * *' || github.event.inputs.action == 'stats'
     runs-on: ubuntu-latest
     steps:
