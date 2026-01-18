@@ -51,19 +51,37 @@ client.once('ready', async () => {
     
     // Count student roles for NEW members only
     const studentCounts = {};
-    for (const [name, roleId] of Object.entries(STUDENT_ROLES)) {
-      const count = newMembers.filter(m => m.roles.cache.has(roleId)).size;
-      if (count > 0) {
-        studentCounts[name] = count;
+    let noStudentRole = 0;
+    const studentRoleIds = Object.values(STUDENT_ROLES);
+    
+    for (const [id, member] of newMembers) {
+      const hasStudentRole = studentRoleIds.some(roleId => member.roles.cache.has(roleId));
+      if (hasStudentRole) {
+        for (const [name, roleId] of Object.entries(STUDENT_ROLES)) {
+          if (member.roles.cache.has(roleId)) {
+            studentCounts[name] = (studentCounts[name] || 0) + 1;
+          }
+        }
+      } else {
+        noStudentRole++;
       }
     }
     
     // Count source roles for NEW members only
     const sourceCounts = {};
-    for (const [name, roleId] of Object.entries(SOURCE_ROLES)) {
-      const count = newMembers.filter(m => m.roles.cache.has(roleId)).size;
-      if (count > 0) {
-        sourceCounts[name] = count;
+    let noSourceRole = 0;
+    const sourceRoleIds = Object.values(SOURCE_ROLES);
+    
+    for (const [id, member] of newMembers) {
+      const hasSourceRole = sourceRoleIds.some(roleId => member.roles.cache.has(roleId));
+      if (hasSourceRole) {
+        for (const [name, roleId] of Object.entries(SOURCE_ROLES)) {
+          if (member.roles.cache.has(roleId)) {
+            sourceCounts[name] = (sourceCounts[name] || 0) + 1;
+          }
+        }
+      } else {
+        noSourceRole++;
       }
     }
     
@@ -72,11 +90,17 @@ client.once('ready', async () => {
     for (const [name, count] of Object.entries(studentCounts)) {
       studentStats += `• ${name}: ${count}\n`;
     }
+    if (noStudentRole > 0) {
+      studentStats += `• No role selected: ${noStudentRole}\n`;
+    }
     
     // Format source stats
     let sourceStats = '';
     for (const [name, count] of Object.entries(sourceCounts)) {
       sourceStats += `• ${name}: ${count}\n`;
+    }
+    if (noSourceRole > 0) {
+      sourceStats += `• No role selected: ${noSourceRole}\n`;
     }
     
     // Get today's date
@@ -92,8 +116,8 @@ client.once('ready', async () => {
       `📅 ${today}\n\n` +
       `👥 **Total Members:** ${totalMembers}\n` +
       `🆕 **New Today:** ${newMemberCount}\n\n` +
-      `🎓 **New Members - Student Status:**\n${studentStats || 'None today'}\n` +
-      `🔍 **New Members - How They Found Us:**\n${sourceStats || 'None today'}`;
+      `🎓 **New Members - Student Status:**\n${studentStats || 'None today\n'}\n` +
+      `🔍 **New Members - How They Found Us:**\n${sourceStats || 'None today\n'}`;
     
     // Send to destination channel
     const channel = await client.channels.fetch(DESTINATION_CHANNEL_ID);
