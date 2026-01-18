@@ -39,31 +39,44 @@ client.once('ready', async () => {
     // Fetch the source server
     const guild = await client.guilds.fetch(SOURCE_SERVER_ID);
     
-    // Fetch all members to get accurate count
+    // Fetch all members
     await guild.members.fetch();
     
     const totalMembers = guild.memberCount;
     
-    // Count members who joined in the last 24 hours
+    // Get members who joined in the last 24 hours
     const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-    const newMembers = guild.members.cache.filter(m => m.joinedTimestamp > oneDayAgo).size;
+    const newMembers = guild.members.cache.filter(m => m.joinedTimestamp > oneDayAgo);
+    const newMemberCount = newMembers.size;
     
-    // Count student roles
-    let studentStats = '';
+    // Count student roles for NEW members only
+    const studentCounts = {};
     for (const [name, roleId] of Object.entries(STUDENT_ROLES)) {
-      const role = guild.roles.cache.get(roleId);
-      if (role) {
-        studentStats += `• ${name}: ${role.members.size}\n`;
+      const count = newMembers.filter(m => m.roles.cache.has(roleId)).size;
+      if (count > 0) {
+        studentCounts[name] = count;
       }
     }
     
-    // Count source roles
-    let sourceStats = '';
+    // Count source roles for NEW members only
+    const sourceCounts = {};
     for (const [name, roleId] of Object.entries(SOURCE_ROLES)) {
-      const role = guild.roles.cache.get(roleId);
-      if (role) {
-        sourceStats += `• ${name}: ${role.members.size}\n`;
+      const count = newMembers.filter(m => m.roles.cache.has(roleId)).size;
+      if (count > 0) {
+        sourceCounts[name] = count;
       }
+    }
+    
+    // Format student stats
+    let studentStats = '';
+    for (const [name, count] of Object.entries(studentCounts)) {
+      studentStats += `• ${name}: ${count}\n`;
+    }
+    
+    // Format source stats
+    let sourceStats = '';
+    for (const [name, count] of Object.entries(sourceCounts)) {
+      sourceStats += `• ${name}: ${count}\n`;
     }
     
     // Get today's date
@@ -74,13 +87,13 @@ client.once('ready', async () => {
       day: 'numeric' 
     });
     
-    // Create stats message.
+    // Create stats message
     const statsMessage = `📊 **Daily Server Stats - ${guild.name}**\n` +
       `📅 ${today}\n\n` +
       `👥 **Total Members:** ${totalMembers}\n` +
-      `🆕 **New Today:** ${newMembers}\n\n` +
-      `🎓 **Student Status:**\n${studentStats}\n` +
-      `🔍 **How They Found Us:**\n${sourceStats}`;
+      `🆕 **New Today:** ${newMemberCount}\n\n` +
+      `🎓 **New Members - Student Status:**\n${studentStats || 'None today'}\n` +
+      `🔍 **New Members - How They Found Us:**\n${sourceStats || 'None today'}`;
     
     // Send to destination channel
     const channel = await client.channels.fetch(DESTINATION_CHANNEL_ID);
