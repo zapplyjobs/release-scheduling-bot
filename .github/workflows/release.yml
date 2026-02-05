@@ -1,8 +1,7 @@
 name: Release Thread Bot
-
 on:
   schedule:
-    # Create threads: Monday 9am Pakistan time (4am UTC)
+    # Create threads: Thursday 9am Pakistan time (4am UTC)
     - cron: '0 4 * * 4'
     # Archive threads: Daily at midnight Pakistan time (7pm UTC previous day)
     - cron: '0 19 * * *'

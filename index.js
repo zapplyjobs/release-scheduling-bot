@@ -8,7 +8,7 @@ const client = new Client({
 const BOT_TOKEN = process.env.BOT_TOKEN || 'REPLACE_WITH_TOKEN_FOR_LOCAL_TESTING';
 const CHANNEL_ID = '1452477431096152196';
 const TECH_CHANNEL_ID = '1371178076893085846';
-const START_DATE = new Date('2026-01-19'); // Monday R1W1 starts
+const START_DATE = new Date('2026-01-22'); // Thursday - must align with Thursday cron schedule
 
 // Week descriptions
 const weekDescriptions = {
