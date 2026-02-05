@@ -1,5 +1,4 @@
 const { Client, GatewayIntentBits } = require('discord.js');
-
 const client = new Client({ 
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] 
 });
@@ -8,7 +7,7 @@ const client = new Client({
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = '1452477431096152196';
 const TECH_CHANNEL_ID = '1371178076893085846';
-const START_DATE = new Date('2026-01-22');
+const START_DATE = new Date('2026-01-19'); // Must match index.js
 
 // Week descriptions
 const weekDescriptions = {
@@ -40,16 +39,24 @@ function getReleasesForDate(date) {
   return releases;
 }
 
-async function findExistingThread(channel, release) {
+async function threadExists(channel, threadName) {
+  // Check active threads
   const activeThreads = await channel.threads.fetchActive();
-  
   for (const [id, thread] of activeThreads.threads) {
-    // Match thread name like "🐙 R2W1" for release 2
-    if (thread.name.includes(`R${release}W1`) && !thread.name.includes('[ARCHIVED]')) {
-      return thread;
+    if (thread.name.includes(`R${threadName.release}W${threadName.week}`)) {
+      return true;
     }
   }
-  return null;
+  
+  // Check archived threads
+  const archivedThreads = await channel.threads.fetchArchived({ limit: 50 });
+  for (const [id, thread] of archivedThreads.threads) {
+    if (thread.name.includes(`R${threadName.release}W${threadName.week}`)) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 client.once('ready', async () => {
@@ -65,32 +72,30 @@ client.once('ready', async () => {
   
   for (const { release, week } of releases) {
     const phase = weekDescriptions[week];
+    const threadName = `R${release}W${week} 🐙`;
     
-    if (week === 1) {
-      // Create new thread
-      const threadName = `R${release}W1 🪼`;
-      
-      const thread = await channel.threads.create({
-        name: threadName,
-        autoArchiveDuration: 10080,
-        reason: 'Weekly release thread'
-      });
-      
-      await thread.send(`🚀 **Release ${release}** has started!\n\n📅 **Week ${week}:** ${phase}`);
-      await techChannel.send(`@everyone New thread created: ${thread}`);
-      console.log(`Created thread: ${threadName}`);
-      
-    } else {
-      // Find existing thread and post update
-      const thread = await findExistingThread(channel, release);
-      
-      if (thread) {
-        await thread.send(`📢 **Week ${week} Update:** ${phase}`);
-        console.log(`Posted Week ${week} update to R${release} thread`);
-      } else {
-        console.log(`Could not find thread for R${release} to post Week ${week} update`);
-      }
+    // Check if this thread already exists (avoid duplicates)
+    const alreadyExists = await threadExists(channel, { release, week });
+    if (alreadyExists) {
+      console.log(`Thread ${threadName} already exists, skipping.`);
+      continue;
     }
+    
+    // Create a new thread for every release+week combination
+    const thread = await channel.threads.create({
+      name: threadName,
+      autoArchiveDuration: 10080, // 7 days
+      reason: `Release ${release} - Week ${week} thread`
+    });
+    
+    await thread.send(
+      `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
+      `📅 This thread covers R${release}W${week}.\n` +
+      `Phase: **${phase}**`
+    );
+    
+    await techChannel.send(`@everyone New thread created: ${thread}`);
+    console.log(`Created thread: ${threadName}`);
   }
   
   console.log('Done! Exiting...');
