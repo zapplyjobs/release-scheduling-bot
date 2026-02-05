@@ -48,12 +48,16 @@ async function threadExists(channel, threadName) {
     }
   }
   
-  // Check archived threads
-  const archivedThreads = await channel.threads.fetchArchived({ limit: 50 });
-  for (const [id, thread] of archivedThreads.threads) {
-    if (thread.name.includes(`R${threadName.release}W${threadName.week}`)) {
-      return true;
+  // Check archived threads (may fail if bot lacks Read Message History permission)
+  try {
+    const archivedThreads = await channel.threads.fetchArchived({ limit: 50 });
+    for (const [id, thread] of archivedThreads.threads) {
+      if (thread.name.includes(`R${threadName.release}W${threadName.week}`)) {
+        return true;
+      }
     }
+  } catch (error) {
+    console.log('Could not check archived threads (missing permission), skipping check.');
   }
   
   return false;
@@ -72,7 +76,7 @@ client.once('ready', async () => {
   
   for (const { release, week } of releases) {
     const phase = weekDescriptions[week];
-    const threadName = `R${release}W${week} 🐙`;
+    const threadName = `R${release}W${week} 🪼`;
     
     // Check if this thread already exists (avoid duplicates)
     const alreadyExists = await threadExists(channel, { release, week });
