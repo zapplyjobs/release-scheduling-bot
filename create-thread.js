@@ -103,7 +103,7 @@ function formatProjectsTable(projects) {
   const maxOwnerLen = Math.max(...projects.map(p => p.owner.length), 5);
   
   // Cap lengths to prevent overflow
-  const projectColWidth = Math.min(maxProjectLen, 40);
+  const projectColWidth = Math.min(maxProjectLen, 50);
   const ownerColWidth = Math.min(maxOwnerLen, 15);
   
   let table = '\n\n📋 **Projects this release:**\n```\n';
