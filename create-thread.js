@@ -211,7 +211,6 @@ client.once('ready', async () => {
       projectsTable
     );
     
-    await techChannel.send(`New thread created: ${thread}`);
     await channel.send(`New thread created: ${thread}`);
     console.log(`Created thread: ${threadName}`);
   }
