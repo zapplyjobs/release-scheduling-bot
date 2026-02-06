@@ -212,6 +212,7 @@ client.once('ready', async () => {
     );
     
     await techChannel.send(`New thread created: ${thread}`);
+    await channel.send(`New thread created: ${thread}`);
     console.log(`Created thread: ${threadName}`);
   }
   
