@@ -208,7 +208,8 @@ client.once('ready', async () => {
       `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
       `📅 This thread covers R${release}W${week}.\n` +
       `Phase: **${phase}**` +
-      projectsTable
+      projectsTable +
+      `\n\n<@&1394533853598711868>`
     );
     
     await channel.send(`New thread created: ${thread}`);
