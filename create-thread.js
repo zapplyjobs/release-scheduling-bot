@@ -37,11 +37,13 @@ async function fetchProjects() {
       const columns = parseCSVLine(line);
       
       const project = columns[0]?.trim();
-      const owner = columns[3]?.trim();   // Column D is Owner
-      const release = columns[4]?.trim(); // Column E is Release
+      const competitor = columns[1]?.trim(); // Column B is Competitor
+      const status = columns[2]?.trim();     // Column C is Status
+      const owner = columns[3]?.trim();      // Column D is Owner
+      const release = columns[4]?.trim();    // Column E is Release
       
       if (project && owner && release) {
-        projects.push({ project, owner, release });
+        projects.push({ project, competitor, status, owner, release });
       }
     }
     
@@ -100,22 +102,31 @@ function formatProjectsTable(projects) {
   
   // Find max lengths for alignment
   const maxProjectLen = Math.max(...projects.map(p => p.project.length), 7);
+  const maxCompetitorLen = Math.max(...projects.map(p => (p.competitor || '-').length), 10);
+  const maxStatusLen = 6; // Status emoji is short
   const maxOwnerLen = Math.max(...projects.map(p => p.owner.length), 5);
   
   // Cap lengths to prevent overflow
-  const projectColWidth = Math.min(maxProjectLen, 50);
-  const ownerColWidth = Math.min(maxOwnerLen, 15);
+  const projectColWidth = Math.min(maxProjectLen, 35);
+  const competitorColWidth = Math.min(maxCompetitorLen, 12);
+  const statusColWidth = maxStatusLen;
+  const ownerColWidth = Math.min(maxOwnerLen, 12);
   
   let table = '\n\n📋 **Projects this release:**\n```\n';
-  table += 'Project'.padEnd(projectColWidth) + '  ' + 'Owner'.padEnd(ownerColWidth) + '\n';
-  table += '─'.repeat(projectColWidth + ownerColWidth + 2) + '\n';
+  table += 'Project'.padEnd(projectColWidth) + '  ' + 
+           'Competitor'.padEnd(competitorColWidth) + '  ' +
+           'Status'.padEnd(statusColWidth) + '  ' +
+           'Owner'.padEnd(ownerColWidth) + '\n';
+  table += '─'.repeat(projectColWidth + competitorColWidth + statusColWidth + ownerColWidth + 6) + '\n';
   
   for (const p of projects) {
     const projectName = p.project.length > projectColWidth 
       ? p.project.substring(0, projectColWidth - 3) + '...' 
       : p.project.padEnd(projectColWidth);
+    const competitor = (p.competitor || '-').padEnd(competitorColWidth);
+    const status = (p.status || '-').padEnd(statusColWidth);
     const ownerName = p.owner.padEnd(ownerColWidth);
-    table += `${projectName}  ${ownerName}\n`;
+    table += `${projectName}  ${competitor}  ${status}  ${ownerName}\n`;
   }
   
   table += '```';
@@ -208,8 +219,7 @@ client.once('ready', async () => {
       `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
       `📅 This thread covers R${release}W${week}.\n` +
       `Phase: **${phase}**` +
-      projectsTable +
-      `\n\n<@&1394533853598711868>`
+      projectsTable
     );
     
     await channel.send(`New thread created: ${thread}`);
