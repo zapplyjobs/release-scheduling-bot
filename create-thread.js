@@ -155,12 +155,12 @@ function getReleasesForDate(date) {
   return releases;
 }
 
-async function threadExists(channel, threadName) {
+async function findExistingThread(channel, release, week) {
   // Check active threads
   const activeThreads = await channel.threads.fetchActive();
   for (const [id, thread] of activeThreads.threads) {
-    if (thread.name.includes(`R${threadName.release}W${threadName.week}`)) {
-      return true;
+    if (thread.name.includes(`R${release}W${week}`)) {
+      return thread;
     }
   }
   
@@ -168,15 +168,17 @@ async function threadExists(channel, threadName) {
   try {
     const archivedThreads = await channel.threads.fetchArchived({ limit: 50 });
     for (const [id, thread] of archivedThreads.threads) {
-      if (thread.name.includes(`R${threadName.release}W${threadName.week}`)) {
-        return true;
+      if (thread.name.includes(`R${release}W${week}`)) {
+        // Unarchive it so we can post
+        await thread.setArchived(false);
+        return thread;
       }
     }
   } catch (error) {
     console.log('Could not check archived threads (missing permission), skipping check.');
   }
   
-  return false;
+  return null;
 }
 
 client.once('ready', async () => {
@@ -197,34 +199,41 @@ client.once('ready', async () => {
     const phase = weekDescriptions[week];
     const threadName = `R${release}W${week} 🪼`;
     
-    // Check if this thread already exists (avoid duplicates)
-    const alreadyExists = await threadExists(channel, { release, week });
-    if (alreadyExists) {
-      console.log(`Thread ${threadName} already exists, skipping.`);
-      continue;
-    }
-    
     // Get projects for this release
     const releaseProjects = getProjectsForRelease(allProjects, release);
     const projectsTable = formatProjectsTable(releaseProjects);
     
-    // Create a new thread for every release+week combination
-    const thread = await channel.threads.create({
-      name: threadName,
-      autoArchiveDuration: 10080, // 7 days
-      reason: `Release ${release} - Week ${week} thread`
-    });
+    // Check if thread already exists
+    const existingThread = await findExistingThread(channel, release, week);
     
-    await thread.send(
-      `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
-      `📅 This thread covers R${release}W${week}.\n` +
-      `Phase: **${phase}**` +
-      projectsTable +
-      `\n\n<@&1394533853598711868>`
-    );
-    
-    await channel.send(`New thread created: ${thread}`);
-    console.log(`Created thread: ${threadName}`);
+    if (existingThread) {
+      // Thread exists - send update without ping
+      await existingThread.send(
+        `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
+        `📅 This thread covers R${release}W${week}.\n` +
+        `Phase: **${phase}**` +
+        projectsTable
+      );
+      console.log(`Posted update to existing thread: ${threadName}`);
+    } else {
+      // Create new thread with ping
+      const thread = await channel.threads.create({
+        name: threadName,
+        autoArchiveDuration: 10080, // 7 days
+        reason: `Release ${release} - Week ${week} thread`
+      });
+      
+      await thread.send(
+        `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
+        `📅 This thread covers R${release}W${week}.\n` +
+        `Phase: **${phase}**` +
+        projectsTable +
+        `\n\n<@&1394533853598711868>`
+      );
+      
+      await channel.send(`New thread created: ${thread}`);
+      console.log(`Created thread: ${threadName}`);
+    }
   }
   
   console.log('Done! Exiting...');
