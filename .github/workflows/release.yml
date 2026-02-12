@@ -3,8 +3,8 @@ on:
   schedule:
     # Create threads: Thursday 9am Pakistan time (4am UTC)
     - cron: '0 4 * * 4'
-    # Archive threads: Daily at midnight Pakistan time (7pm UTC previous day)
-    - cron: '0 19 * * *'
+    # Archive threads: Thursday 9am Pakistan time (4am UTC) - runs after create
+    - cron: '30 4 * * 4'
     # Server stats: Daily at 10am Pakistan time (5am UTC)
     - cron: '0 5 * * *'
   workflow_dispatch:
@@ -41,7 +41,7 @@ jobs:
         run: node create-thread.js
 
   archive-threads:
-    if: github.event.schedule == '0 19 * * *' || github.event.inputs.action == 'archive'
+    if: github.event.schedule == '30 4 * * 4' || github.event.inputs.action == 'archive'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

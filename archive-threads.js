@@ -7,11 +7,26 @@ const client = new Client({
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = '1452477431096152196';
 
+// Get the most recent Thursday (today if it's Thursday, otherwise last Thursday)
+function getThisThursday() {
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay(); // 0 = Sunday, 4 = Thursday
+  const daysFromThursday = (dayOfWeek + 7 - 4) % 7; // Days since last Thursday
+  
+  const thisThursday = new Date(now);
+  thisThursday.setUTCDate(now.getUTCDate() - daysFromThursday);
+  thisThursday.setUTCHours(0, 0, 0, 0); // Start of that Thursday
+  
+  return thisThursday;
+}
+
 client.once('ready', async () => {
   console.log(`Bot is online as ${client.user.tag}`);
   
   const channel = await client.channels.fetch(CHANNEL_ID);
-  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const thisThursday = getThisThursday();
+  
+  console.log(`Archiving threads created before: ${thisThursday.toDateString()}`);
   
   // Fetch active threads
   const activeThreads = await channel.threads.fetchActive();
@@ -32,8 +47,8 @@ client.once('ready', async () => {
       continue;
     }
     
-    // Check if thread is older than 7 days
-    if (thread.createdTimestamp < sevenDaysAgo) {
+    // Archive if thread was created before this Thursday
+    if (thread.createdTimestamp < thisThursday.getTime()) {
       try {
         const oldName = thread.name;
         const newName = `📦 [ARCHIVED] ${oldName}`;
@@ -48,8 +63,7 @@ client.once('ready', async () => {
         console.log(`Failed to archive ${thread.name}:`, error.message);
       }
     } else {
-      const ageInDays = Math.floor((Date.now() - thread.createdTimestamp) / (24 * 60 * 60 * 1000));
-      console.log(`Skipped ${thread.name} - only ${ageInDays} days old (needs 7+)`);
+      console.log(`Skipped ${thread.name} - created on/after this Thursday`);
     }
   }
   
