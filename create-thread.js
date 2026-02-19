@@ -220,9 +220,14 @@ client.once('ready', async () => {
     // Check if thread already exists
     const existingThread = await findExistingThread(channel, release);
     
+    // Add @tech ping only on scheduled runs
+    const finalMessage = IS_SCHEDULED 
+      ? message + `\n\n<@&1394533853598711868>`
+      : message;
+    
     if (existingThread) {
-      // Thread exists - send weekly update (no ping)
-      await existingThread.send(message);
+      // Thread exists - send weekly update
+      await existingThread.send(finalMessage);
       console.log(`Posted Week ${week} update to existing thread: ${threadName}`);
     } else {
       // Create new thread (Week 1)
@@ -232,13 +237,7 @@ client.once('ready', async () => {
         reason: `Release ${release} thread`
       });
       
-      // Add @tech ping only on scheduled runs
-      if (IS_SCHEDULED) {
-        await thread.send(message + `\n\n<@&1394533853598711868>`);
-      } else {
-        await thread.send(message);
-      }
-      
+      await thread.send(finalMessage);
       await channel.send(`New thread created: ${thread}`);
       console.log(`Created thread: ${threadName}`);
     }
