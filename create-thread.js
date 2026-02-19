@@ -6,9 +6,11 @@ const client = new Client({
 // === CONFIGURATION ===
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = '1452477431096152196';
-const TECH_CHANNEL_ID = '1371178076893085846';
 const START_DATE = new Date('2026-01-22'); // Thursday - must align with Thursday cron schedule
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTOQD3D48hwyKTTVCLvvv2ItQ7GB-hBR8346DR-WOhYllb8lkLymoimEY5xjc_I046P3za7i4LzQsNl/pub?gid=1810019676&single=true&output=csv';
+
+// Check if this is a scheduled run (not manual)
+const IS_SCHEDULED = process.env.GITHUB_EVENT_NAME === 'schedule';
 
 // Week descriptions
 const weekDescriptions = {
@@ -155,12 +157,15 @@ function getReleasesForDate(date) {
   return releases;
 }
 
-async function findExistingThread(channel, release, week) {
+async function findExistingThread(channel, release) {
   // Check active threads
   const activeThreads = await channel.threads.fetchActive();
   for (const [id, thread] of activeThreads.threads) {
-    if (thread.name.includes(`R${release}W${week}`)) {
-      return thread;
+    // Match "R3 🪼" but not "R3W1" or "[ARCHIVED] R3"
+    if (thread.name === `R${release} 🪼` || thread.name.startsWith(`R${release} `)) {
+      if (!thread.name.includes('[ARCHIVED]')) {
+        return thread;
+      }
     }
   }
   
@@ -168,10 +173,12 @@ async function findExistingThread(channel, release, week) {
   try {
     const archivedThreads = await channel.threads.fetchArchived({ limit: 50 });
     for (const [id, thread] of archivedThreads.threads) {
-      if (thread.name.includes(`R${release}W${week}`)) {
-        // Unarchive it so we can post
-        await thread.setArchived(false);
-        return thread;
+      if (thread.name === `R${release} 🪼` || thread.name.startsWith(`R${release} `)) {
+        if (!thread.name.includes('[ARCHIVED]')) {
+          // Unarchive it so we can post
+          await thread.setArchived(false);
+          return thread;
+        }
       }
     }
   } catch (error) {
@@ -183,12 +190,12 @@ async function findExistingThread(channel, release, week) {
 
 client.once('ready', async () => {
   console.log(`Bot is online as ${client.user.tag}`);
+  console.log(`Is scheduled run: ${IS_SCHEDULED}`);
   
   // Fetch projects from Google Sheets
   const allProjects = await fetchProjects();
   
   const channel = await client.channels.fetch(CHANNEL_ID);
-  const techChannel = await client.channels.fetch(TECH_CHANNEL_ID);
   const today = new Date();
   const releases = getReleasesForDate(today);
   
@@ -197,39 +204,40 @@ client.once('ready', async () => {
   
   for (const { release, week } of releases) {
     const phase = weekDescriptions[week];
-    const threadName = `R${release}W${week} 🪼`;
+    const threadName = `R${release} 🪼`;
     
     // Get projects for this release
     const releaseProjects = getProjectsForRelease(allProjects, release);
     const projectsTable = formatProjectsTable(releaseProjects);
     
+    // Build the message
+    const message = 
+      `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
+      `📅 This thread covers R${release}W${week}.\n` +
+      `Phase: **${phase}**` +
+      projectsTable;
+    
     // Check if thread already exists
-    const existingThread = await findExistingThread(channel, release, week);
+    const existingThread = await findExistingThread(channel, release);
     
     if (existingThread) {
-      // Thread exists - send update without ping
-      await existingThread.send(
-        `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
-        `📅 This thread covers R${release}W${week}.\n` +
-        `Phase: **${phase}**` +
-        projectsTable
-      );
-      console.log(`Posted update to existing thread: ${threadName}`);
+      // Thread exists - send weekly update (no ping)
+      await existingThread.send(message);
+      console.log(`Posted Week ${week} update to existing thread: ${threadName}`);
     } else {
-      // Create new thread with ping
+      // Create new thread (Week 1)
       const thread = await channel.threads.create({
         name: threadName,
-        autoArchiveDuration: 10080, // 7 days
-        reason: `Release ${release} - Week ${week} thread`
+        autoArchiveDuration: 10080, // 7 days auto-archive (Discord feature, we handle manually)
+        reason: `Release ${release} thread`
       });
       
-      await thread.send(
-        `🚀 **Release ${release} — Week ${week}: ${phase}**\n\n` +
-        `📅 This thread covers R${release}W${week}.\n` +
-        `Phase: **${phase}**` +
-        projectsTable +
-        `\n\n<@&1394533853598711868>`
-      );
+      // Add @tech ping only on scheduled runs
+      if (IS_SCHEDULED) {
+        await thread.send(message + `\n\n<@&1394533853598711868>`);
+      } else {
+        await thread.send(message);
+      }
       
       await channel.send(`New thread created: ${thread}`);
       console.log(`Created thread: ${threadName}`);

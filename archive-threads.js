@@ -6,34 +6,63 @@ const client = new Client({
 // === CONFIGURATION ===
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CHANNEL_ID = '1452477431096152196';
+const START_DATE = new Date('2026-01-22'); // Thursday - must align with Thursday cron schedule
 
-// Get the most recent Thursday (today if it's Thursday, otherwise last Thursday)
-function getThisThursday() {
-  const now = new Date();
-  const dayOfWeek = now.getUTCDay(); // 0 = Sunday, 4 = Thursday
-  const daysFromThursday = (dayOfWeek + 7 - 4) % 7; // Days since last Thursday
+// === TRACKING ===
+function getReleasesForDate(date) {
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const weeksSinceStart = Math.floor((date - START_DATE) / msPerWeek);
   
-  const thisThursday = new Date(now);
-  thisThursday.setUTCDate(now.getUTCDate() - daysFromThursday);
-  thisThursday.setUTCHours(0, 0, 0, 0); // Start of that Thursday
+  if (weeksSinceStart < 0) return [];
   
-  return thisThursday;
+  const releases = [];
+  
+  for (let r = 1; r <= 100; r++) {
+    const releaseStartWeek = (r - 1) * 2;
+    const releaseEndWeek = releaseStartWeek + 3;
+    
+    if (weeksSinceStart >= releaseStartWeek && weeksSinceStart <= releaseEndWeek) {
+      const week = weeksSinceStart - releaseStartWeek + 1;
+      releases.push({ release: r, week: week });
+    }
+  }
+  
+  return releases;
+}
+
+// Get releases that just finished (were in Week 4 last week)
+function getCompletedReleases(date) {
+  const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+  const lastWeek = new Date(date.getTime() - msPerWeek);
+  const lastWeekReleases = getReleasesForDate(lastWeek);
+  
+  // Return releases that were in Week 4 last week
+  return lastWeekReleases.filter(r => r.week === 4).map(r => r.release);
 }
 
 client.once('ready', async () => {
   console.log(`Bot is online as ${client.user.tag}`);
   
   const channel = await client.channels.fetch(CHANNEL_ID);
-  const thisThursday = getThisThursday();
+  const today = new Date();
+  const completedReleases = getCompletedReleases(today);
   
-  console.log(`Archiving threads created before: ${thisThursday.toDateString()}`);
+  console.log('Today:', today.toDateString());
+  console.log('Releases to archive (finished Week 4):', completedReleases);
+  
+  if (completedReleases.length === 0) {
+    console.log('No releases to archive this week.');
+    client.destroy();
+    process.exit(0);
+    return;
+  }
   
   // Fetch active threads
   const activeThreads = await channel.threads.fetchActive();
   console.log(`Found ${activeThreads.threads.size} active threads`);
   
   for (const [id, thread] of activeThreads.threads) {
-    console.log(`Checking thread: ${thread.name}, created: ${new Date(thread.createdTimestamp).toDateString()}`);
+    console.log(`Checking thread: ${thread.name}`);
     
     // Skip if already archived
     if (thread.archived) {
@@ -47,23 +76,24 @@ client.once('ready', async () => {
       continue;
     }
     
-    // Archive if thread was created before this Thursday
-    if (thread.createdTimestamp < thisThursday.getTime()) {
-      try {
-        const oldName = thread.name;
-        const newName = `📦 [ARCHIVED] ${oldName}`;
-        
-        await thread.send('🗄️ This thread has been archived.');
-        await thread.setName(newName);
-        await thread.setArchived(true);
-        await thread.setLocked(true);
-        
-        console.log(`Archived: ${oldName} → ${newName}`);
-      } catch (error) {
-        console.log(`Failed to archive ${thread.name}:`, error.message);
+    // Check if this thread belongs to a completed release
+    for (const releaseNum of completedReleases) {
+      if (thread.name === `R${releaseNum} 🪼` || thread.name.startsWith(`R${releaseNum} `)) {
+        try {
+          const oldName = thread.name;
+          const newName = `📦 [ARCHIVED] ${oldName}`;
+          
+          await thread.send('🗄️ **Release complete!** This thread has been archived.');
+          await thread.setName(newName);
+          await thread.setArchived(true);
+          await thread.setLocked(true);
+          
+          console.log(`Archived: ${oldName} → ${newName}`);
+        } catch (error) {
+          console.log(`Failed to archive ${thread.name}:`, error.message);
+        }
+        break;
       }
-    } else {
-      console.log(`Skipped ${thread.name} - created on/after this Thursday`);
     }
   }
   
