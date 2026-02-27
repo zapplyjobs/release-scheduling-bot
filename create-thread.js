@@ -220,14 +220,9 @@ client.once('ready', async () => {
     // Check if thread already exists
     const existingThread = await findExistingThread(channel, release);
     
-    // Add @tech ping only on scheduled runs
-    const finalMessage = IS_SCHEDULED 
-      ? message + `\n\n<@&1394533853598711868>`
-      : message;
-    
     if (existingThread) {
-      // Thread exists - send weekly update
-      await existingThread.send(finalMessage);
+      // Thread exists - send weekly update (no ping)
+      await existingThread.send(message);
       console.log(`Posted Week ${week} update to existing thread: ${threadName}`);
     } else {
       // Create new thread (Week 1)
@@ -236,6 +231,11 @@ client.once('ready', async () => {
         autoArchiveDuration: 10080, // 7 days auto-archive (Discord feature, we handle manually)
         reason: `Release ${release} thread`
       });
+      
+      // Add @tech ping only on scheduled runs for new threads
+      const finalMessage = IS_SCHEDULED 
+        ? message + `\n\n<@&1394533853598711868>`
+        : message;
       
       await thread.send(finalMessage);
       await channel.send(`New thread created: ${thread}`);
