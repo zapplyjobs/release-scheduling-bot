@@ -75,7 +75,7 @@ async function fetchReportData() {
 
   const lines = csvText.split('\n');
 
-  const today = getTodayDateString();
+  const today = 'May 9';
 
   console.log('Checking date:', today);
 
