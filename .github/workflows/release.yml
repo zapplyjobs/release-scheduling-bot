@@ -20,6 +20,7 @@ on:
           - create
           - archive
           - stats
+          - daily-report
 
 jobs:
   create-thread:
@@ -85,7 +86,7 @@ jobs:
         run: node server-stats.js
 
   daily-extension-report:
-    if: github.event.schedule == '50 18 * * *'
+    if: github.event.schedule == '50 18 * * *' || github.event.inputs.action == 'daily-report'
     runs-on: ubuntu-latest
 
     steps:
