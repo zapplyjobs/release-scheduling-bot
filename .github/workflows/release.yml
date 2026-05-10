@@ -83,3 +83,24 @@ jobs:
           GIST_ID: ${{ secrets.GIST_ID }}
           GIST_TOKEN: ${{ secrets.GIST_TOKEN }}
         run: node server-stats.js
+
+  daily-extension-report:
+    if: github.event.schedule == '50 18 * * *'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install discord.js
+
+      - name: Run daily extension report
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: node daily-extension-testing.js
