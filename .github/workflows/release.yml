@@ -7,6 +7,8 @@ on:
     - cron: '30 4 * * 4'
     # Server stats: Daily at 10am Pakistan time (5am UTC)
     - cron: '0 5 * * *'
+    # Daily extension testing report: 11:50 PM Pakistan time (6:50 PM UTC)
+    - cron: '50 18 * * *'
   workflow_dispatch:
     inputs:
       action:
