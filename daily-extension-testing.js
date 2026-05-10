@@ -130,12 +130,7 @@ function buildReport(counts) {
     }
   }
 
-  const now = new Date().toLocaleDateString('en-US', {
-    timeZone: 'Asia/Karachi',
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric'
-  });
+  const now = 'Friday, May 9';
 
   return (
     `📊 **Daily Extension Testing Report**\n` +
