@@ -75,7 +75,7 @@ async function fetchReportData() {
 
   const lines = csvText.split('\n');
 
-  const today = 'May 9';
+  const today = getTodayDateString();
 
   console.log('Checking date:', today);
 
@@ -130,7 +130,12 @@ function buildReport(counts) {
     }
   }
 
-  const now = 'Friday, May 9';
+  const now = new Date().toLocaleDateString('en-US', {
+  timeZone: 'Asia/Karachi',
+  weekday: 'long',
+  month: 'long',
+  day: 'numeric'
+});
 
   return (
     `📊 **Daily Extension Testing Report**\n` +
