@@ -35,10 +35,13 @@ function normalizeName(name) {
 function getTodayDateString() {
   const now = new Date();
 
-  // Pakistan Time
+  // Pakistan time
   const pktDate = new Date(
     now.toLocaleString('en-US', { timeZone: 'Asia/Karachi' })
   );
+
+  // Go back 1 day
+  pktDate.setDate(pktDate.getDate() - 1);
 
   const month = pktDate.toLocaleString('en-US', { month: 'short' });
   const day = pktDate.getDate();
