@@ -23,6 +23,7 @@ on:
           - archive
           - stats
           - daily-report
+          - manager-feedback
 
 jobs:
   create-thread:
@@ -107,3 +108,24 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
         run: node daily-extension-testing.js
+  
+  manager-feedback-reminder:
+    if: github.event.schedule == '0 4 15,30 * *' || github.event.inputs.action == 'manager-feedback'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install discord.js
+
+      - name: Run manager feedback reminder
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+        run: node manager-feedback-reminder.js
