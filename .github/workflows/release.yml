@@ -9,6 +9,8 @@ on:
     - cron: '0 5 * * *'
     # Daily extension testing report: 11:50 PM Pakistan time (6:50 PM UTC)
     - cron: '50 18 * * *'
+    # Manager feedback reminders: 9 AM Pakistan time on the 15th and 30th
+    - cron: '0 4 15,30 * *'
   workflow_dispatch:
     inputs:
       action:
