@@ -24,7 +24,7 @@ Please submit reviews today. Thank you!
 `;
 
 client.once('ready', async () => {
-  console.log(\`Logged in as \${client.user.tag}\`);
+  console.log(`Logged in as ${client.user.tag}`);
 
   try {
     const techChannel = await client.channels.fetch(TECH_CHANNEL_ID);
