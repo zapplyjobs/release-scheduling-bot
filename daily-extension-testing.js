@@ -13,7 +13,7 @@ const CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxtlreotDli-1UOfdpRKeMT0cK3t_8Bnxx2gvQwqINXaaThIIUXBSTTAqKQmK-CDr5k5KJie5XCINY/pub?output=csv';
 
 const ALL_DEVS = [
-  'Shaheer',
+  'Shaheer S.',
   'Rihab',
   'Anas',
   'Ramish',
@@ -24,7 +24,8 @@ const ALL_DEVS = [
   'Moin',
   'Adeel',
   'Arfaat',
-  'Sumair'
+  'Sumair',
+  'Shaheer K.'
 ];
 
 // === HELPERS ===
