@@ -21,11 +21,11 @@ const ALL_DEVS = [
   'Ezaan',
   'Amaar',
   'Aliyan',
-  'Moin',
   'Adeel',
   'Arfaat',
   'Sumair',
-  'Shaheer K.'
+  'Shaheer K.',
+  'Faiz'
 ];
 
 // === HELPERS ===
