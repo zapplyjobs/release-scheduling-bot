@@ -13,19 +13,18 @@ const CSV_URL =
   'https://docs.google.com/spreadsheets/d/e/2PACX-1vQxtlreotDli-1UOfdpRKeMT0cK3t_8Bnxx2gvQwqINXaaThIIUXBSTTAqKQmK-CDr5k5KJie5XCINY/pub?output=csv';
 
 const ALL_DEVS = [
-  'Shaheer S.',
-  'Rihab',
-  'Anas',
-  'Ramish',
-  'Arsalan',
-  'Ezaan',
-  'Amaar',
   'Aliyan',
-  'Adeel',
+  'Arsalan',
+  'Shaheer S.',
+  'Ezaan',
+  'Ramish',
+  'Anas',
+  'Amaar',
   'Arfaat',
   'Sumair',
   'Shaheer K.',
-  'Faiz'
+  'Faiz',
+  'Abubakar'
 ];
 
 // === HELPERS ===
