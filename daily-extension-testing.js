@@ -44,7 +44,7 @@ function getTodayDateString() {
     pktDate.setDate(pktDate.getDate() - 1);
   }
 
-  const month = pktDate.toLocaleString('en-US', { month: 'short' });
+  const month = pktDate.toLocaleString('en-US', { month: 'long' });
   const day = pktDate.getDate();
 
   return `${month} ${day}`;
