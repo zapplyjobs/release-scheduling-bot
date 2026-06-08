@@ -132,8 +132,13 @@ function buildReport(counts) {
     }
   }
 
-  const now = new Date().toLocaleDateString('en-US', {
-  timeZone: 'Asia/Karachi',
+const reportDate = new Date(
+  new Date().toLocaleString('en-US', { timeZone: 'Asia/Karachi' })
+);
+
+reportDate.setDate(reportDate.getDate() - 1);
+
+const now = reportDate.toLocaleDateString('en-US', {
   weekday: 'long',
   month: 'long',
   day: 'numeric'
