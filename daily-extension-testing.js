@@ -39,10 +39,8 @@ function getTodayDateString() {
     now.toLocaleString('en-US', { timeZone: 'Asia/Karachi' })
   );
 
-  // Only go back 1 day if workflow runs after midnight
-  if (pktDate.getHours() < 3) {
-    pktDate.setDate(pktDate.getDate() - 1);
-  }
+  // Always report previous completed day
+  pktDate.setDate(pktDate.getDate() - 1);
 
   const month = pktDate.toLocaleString('en-US', { month: 'long' });
   const day = pktDate.getDate();
