@@ -23,7 +23,6 @@ const ALL_DEVS = [
   'Arfaat',
   'Sumair',
   'Shaheer K.',
-  'Faiz',
   'Abubakar'
 ];
 
