@@ -122,7 +122,7 @@ function buildReport(counts) {
     const normalized = normalizeName(dev);
     const count = counts[normalized] || 0;
 
-    if (count >= 5) {
+    if (count >= 3) {
       completed.push(`• ${dev} — ${count}`);
     } else if (count > 0) {
       partial.push(`• ${dev} — ${count}`);
@@ -147,10 +147,10 @@ const now = reportDate.toLocaleDateString('en-US', {
     `📊 **Daily Extension Testing Report**\n` +
     `📅 ${now}\n\n` +
 
-    `✅ **Applied to 5+ jobs**\n` +
+    `✅ **Applied to 3+ jobs**\n` +
     `${completed.length ? completed.join('\n') : 'None'}\n\n` +
 
-    `⚠️ **Applied to less than 5 jobs**\n` +
+    `⚠️ **Applied to less than 3 jobs**\n` +
     `${partial.length ? partial.join('\n') : 'None'}\n\n` +
 
     `❌ **No applications today**\n` +
