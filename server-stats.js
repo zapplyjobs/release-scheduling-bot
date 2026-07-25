@@ -1,216 +1,324 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 
-const client = new Client({ 
+const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds, 
+    GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMembers
-  ] 
+  ]
 });
 
 // === CONFIGURATION ===
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const GIST_ID = process.env.GIST_ID;
 const GIST_TOKEN = process.env.GIST_TOKEN;
+
 const SOURCE_SERVER_ID = '1391055226722844713';
 const DESTINATION_CHANNEL_ID = '1459572071494451210';
 
-// Roles to track
 const STUDENT_ROLES = {
-  'Freshman': '1391626832138211478',
-  'Sophomore': '1391626905609830471',
-  'Junior': '1391626960152821770',
-  'Senior': '1391626998543155321',
-  'Master\'s Student': '1391627034848919663',
+  Freshman: '1391626832138211478',
+  Sophomore: '1391626905609830471',
+  Junior: '1391626960152821770',
+  Senior: '1391626998543155321',
+  "Master's Student": '1391627034848919663',
   'PhD Student': '1391627218299654284',
   'Fresh Grad': '1391627348645904415',
-  'Alumni': '1391064125236580432'
+  Alumni: '1391064125236580432'
 };
 
 const SOURCE_ROLES = {
-  'LinkedIn': '1396772649731883008',
-  'GitHub': '1396773236695629844',
+  LinkedIn: '1396772649731883008',
+  GitHub: '1396773236695629844',
   'Zapply Website': '1396772727867834451',
-  'Google': '1396772808951861409',
-  'Elsewhere': '1396772886219456572'
+  Google: '1396772808951861409',
+  Elsewhere: '1396772886219456572'
 };
 
-const ALL_ROLES = { ...STUDENT_ROLES, ...SOURCE_ROLES };
+const ALL_ROLES = {
+  ...STUDENT_ROLES,
+  ...SOURCE_ROLES
+};
 
-// === GIST FUNCTIONS ===
-async function getStoredMembers() {
-  try {
-    const response = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-      headers: { 'Authorization': `token ${GIST_TOKEN}` }
-    });
-    const data = await response.json();
-    const content = data.files['members.json'].content;
-    return JSON.parse(content);
-  } catch (error) {
-    console.log('No stored members found, starting fresh');
-    return {};
+// === VALIDATE ENVIRONMENT VARIABLES ===
+function validateConfiguration() {
+  const missing = [];
+
+  if (!BOT_TOKEN) missing.push('BOT_TOKEN');
+  if (!GIST_ID) missing.push('GIST_ID');
+  if (!GIST_TOKEN) missing.push('GIST_TOKEN');
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Missing environment variables: ${missing.join(', ')}`
+    );
   }
 }
 
-async function saveMembers(members) {
-  await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    method: 'PATCH',
-    headers: {
-      'Authorization': `token ${GIST_TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      files: {
-        'members.json': {
-          content: JSON.stringify(members, null, 2)
-        }
+// === GIST FUNCTIONS ===
+async function getStoredMembers() {
+  const response = await fetch(
+    `https://api.github.com/gists/${GIST_ID}`,
+    {
+      headers: {
+        Authorization: `Bearer ${GIST_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'discord-server-stats'
       }
-    })
-  });
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      `Failed to read Gist: ${response.status} ${errorText}`
+    );
+  }
+
+  const data = await response.json();
+  const file = data.files?.['members.json'];
+
+  if (!file) {
+    throw new Error(
+      'The Gist does not contain a file named members.json'
+    );
+  }
+
+  const storedMembers = JSON.parse(file.content);
+
+  if (
+    !storedMembers ||
+    typeof storedMembers !== 'object' ||
+    Array.isArray(storedMembers)
+  ) {
+    throw new Error('members.json does not contain a valid member object');
+  }
+
+  console.log(
+    `Loaded ${Object.keys(storedMembers).length} members from the previous snapshot`
+  );
+
+  return storedMembers;
+}
+
+async function saveMembers(members) {
+  const response = await fetch(
+    `https://api.github.com/gists/${GIST_ID}`,
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${GIST_TOKEN}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'discord-server-stats'
+      },
+      body: JSON.stringify({
+        files: {
+          'members.json': {
+            content: JSON.stringify(members, null, 2)
+          }
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+
+    throw new Error(
+      `Failed to save Gist: ${response.status} ${errorText}`
+    );
+  }
+
+  console.log(
+    `Saved ${Object.keys(members).length} members for the next run`
+  );
+}
+
+// === FORMATTING ===
+function formatCounts(counts, noRoleCount) {
+  let output = '';
+
+  for (const [name, count] of Object.entries(counts)) {
+    output += `• ${name}: ${count}\n`;
+  }
+
+  if (noRoleCount > 0) {
+    output += `• No role selected: ${noRoleCount}\n`;
+  }
+
+  return output || 'None today\n';
 }
 
 client.once('ready', async () => {
   console.log(`Bot is online as ${client.user.tag}`);
-  
+
   try {
+    validateConfiguration();
+
+    // Fetch the public/source server.
     const guild = await client.guilds.fetch(SOURCE_SERVER_ID);
+
+    // Fetch the complete member list.
     await guild.members.fetch();
-    
-    const totalMembers = guild.memberCount;
-    
-    // Get stored members from yesterday
+
+    // Only count human members.
+    const humanMembers = guild.members.cache.filter(
+      member => !member.user.bot
+    );
+
+    const totalMembers = humanMembers.size;
+
+    // Load the member snapshot from the previous run.
     const storedMembers = await getStoredMembers();
-    
-    // Build current members list
+
+    // Build the current member snapshot.
     const currentMembers = {};
-    for (const [id, member] of guild.members.cache) {
-      if (member.user.bot) continue;
-      
+
+    for (const [memberId, member] of humanMembers) {
       const roles = [];
-      for (const [name, roleId] of Object.entries(ALL_ROLES)) {
+
+      for (const [roleName, roleId] of Object.entries(ALL_ROLES)) {
         if (member.roles.cache.has(roleId)) {
-          roles.push(name);
+          roles.push(roleName);
         }
       }
-      
-      currentMembers[id] = {
+
+      currentMembers[memberId] = {
         username: member.user.username,
-        roles: roles
+        roles
       };
     }
-    
-    // Find members who left
-    const leftMembers = [];
-    for (const [id, data] of Object.entries(storedMembers)) {
-      if (!currentMembers[id]) {
-        leftMembers.push(data);
+
+    /*
+     * LEFT COUNT
+     *
+     * Every ID saved during the previous run is checked against
+     * the current server member list.
+     *
+     * If the ID is no longer present, that member left.
+     */
+    let leftMemberCount = 0;
+
+    for (const memberId of Object.keys(storedMembers)) {
+      if (!currentMembers[memberId]) {
+        leftMemberCount++;
       }
     }
-    
-    // Get members who joined in the last 24 hours
-    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-    const newMembers = guild.members.cache.filter(m => m.joinedTimestamp > oneDayAgo && !m.user.bot);
+
+    console.log(`Previous members: ${Object.keys(storedMembers).length}`);
+    console.log(`Current members: ${Object.keys(currentMembers).length}`);
+    console.log(`Members who left: ${leftMemberCount}`);
+
+    // Find members who joined during the last 24 hours.
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+    const newMembers = humanMembers.filter(
+      member =>
+        member.joinedTimestamp &&
+        member.joinedTimestamp > oneDayAgo
+    );
+
     const newMemberCount = newMembers.size;
-    
-    // Count student roles for NEW members only
+
+    // Count student roles for new members.
     const studentCounts = {};
     let noStudentRole = 0;
-    const studentRoleIds = Object.values(STUDENT_ROLES);
-    
-    for (const [id, member] of newMembers) {
-      const hasStudentRole = studentRoleIds.some(roleId => member.roles.cache.has(roleId));
-      if (hasStudentRole) {
-        for (const [name, roleId] of Object.entries(STUDENT_ROLES)) {
-          if (member.roles.cache.has(roleId)) {
-            studentCounts[name] = (studentCounts[name] || 0) + 1;
-          }
+
+    for (const member of newMembers.values()) {
+      let hasStudentRole = false;
+
+      for (const [roleName, roleId] of Object.entries(STUDENT_ROLES)) {
+        if (member.roles.cache.has(roleId)) {
+          studentCounts[roleName] =
+            (studentCounts[roleName] || 0) + 1;
+
+          hasStudentRole = true;
         }
-      } else {
+      }
+
+      if (!hasStudentRole) {
         noStudentRole++;
       }
     }
-    
-    // Count source roles for NEW members only
+
+    // Count discovery-source roles for new members.
     const sourceCounts = {};
     let noSourceRole = 0;
-    const sourceRoleIds = Object.values(SOURCE_ROLES);
-    
-    for (const [id, member] of newMembers) {
-      const hasSourceRole = sourceRoleIds.some(roleId => member.roles.cache.has(roleId));
-      if (hasSourceRole) {
-        for (const [name, roleId] of Object.entries(SOURCE_ROLES)) {
-          if (member.roles.cache.has(roleId)) {
-            sourceCounts[name] = (sourceCounts[name] || 0) + 1;
-          }
+
+    for (const member of newMembers.values()) {
+      let hasSourceRole = false;
+
+      for (const [roleName, roleId] of Object.entries(SOURCE_ROLES)) {
+        if (member.roles.cache.has(roleId)) {
+          sourceCounts[roleName] =
+            (sourceCounts[roleName] || 0) + 1;
+
+          hasSourceRole = true;
         }
-      } else {
+      }
+
+      if (!hasSourceRole) {
         noSourceRole++;
       }
     }
-    
-    // Format student stats
-    let studentStats = '';
-    for (const [name, count] of Object.entries(studentCounts)) {
-      studentStats += `• ${name}: ${count}\n`;
-    }
-    if (noStudentRole > 0) {
-      studentStats += `• No role selected: ${noStudentRole}\n`;
-    }
-    
-    // Format source stats
-    let sourceStats = '';
-    for (const [name, count] of Object.entries(sourceCounts)) {
-      sourceStats += `• ${name}: ${count}\n`;
-    }
-    if (noSourceRole > 0) {
-      sourceStats += `• No role selected: ${noSourceRole}\n`;
-    }
-    
-    // Format left members
-    let leftStats = '';
-    if (leftMembers.length > 0) {
-      for (const member of leftMembers) {
-        const rolesText = member.roles.length > 0 ? member.roles.join(', ') : 'No roles';
-        leftStats += `• ${member.username}\n  Roles: ${rolesText}\n`;
-      }
-    }
-    
-    // Get today's date
-    const today = new Date().toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+
+    const studentStats = formatCounts(
+      studentCounts,
+      noStudentRole
+    );
+
+    const sourceStats = formatCounts(
+      sourceCounts,
+      noSourceRole
+    );
+
+    const today = new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
-    
-    // Create stats message
-    let statsMessage = `📊 **Daily Server Stats - ${guild.name}**\n` +
+
+    const statsMessage =
+      `📊 **Daily Server Stats - ${guild.name}**\n` +
       `📅 ${today}\n\n` +
       `👥 **Total Members:** ${totalMembers}\n` +
       `🆕 **New Today:** ${newMemberCount}\n` +
-      `👋 **Left Today:** ${leftMembers.length}\n\n` +
-      `🎓 **New Members - Student Status:**\n${studentStats || 'None today\n'}\n` +
-      `🔍 **New Members - How They Found Us:**\n${sourceStats || 'None today\n'}`;
-    
-    if (leftMembers.length > 0) {
-      statsMessage += `\n📤 **Members Who Left:**\n${leftStats}`;
+      `👋 **Left Today:** ${leftMemberCount}\n\n` +
+      `🎓 **New Members - Student Status:**\n` +
+      `${studentStats}\n` +
+      `🔍 **New Members - How They Found Us:**\n` +
+      `${sourceStats}`;
+
+    const channel = await client.channels.fetch(
+      DESTINATION_CHANNEL_ID
+    );
+
+    if (!channel?.isTextBased() || !channel.isSendable()) {
+      throw new Error(
+        'The destination channel is unavailable or the bot cannot send messages there'
+      );
     }
-    
-    // Send to destination channel
-    const channel = await client.channels.fetch(DESTINATION_CHANNEL_ID);
-    await channel.send(statsMessage);
-    
-    // Save current members for tomorrow
+
+    // Post the statistics.
+    await channel.send({
+      content: statsMessage,
+      allowedMentions: {
+        parse: []
+      }
+    });
+
+    // Save only after the message was successfully posted.
     await saveMembers(currentMembers);
-    
-    console.log('Stats posted successfully!');
-    console.log(`Stored ${Object.keys(currentMembers).length} members for tomorrow`);
-    
+
+    console.log('Stats posted successfully');
   } catch (error) {
-    console.error('Error:', error.message);
+    console.error('Stats job failed:', error);
+    process.exitCode = 1;
+  } finally {
+    client.destroy();
   }
-  
-  client.destroy();
-  process.exit(0);
 });
 
 client.login(BOT_TOKEN);
