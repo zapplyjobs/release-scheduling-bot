@@ -20,10 +20,10 @@ const ALL_DEVS = [
   'Ramish',
   'Anas',
   'Amaar',
-  'Arfaat',
   'Sumair',
   'Shaheer K.',
-  'Abubakar'
+  'Abubakar',
+  'Usama'
 ];
 
 // === HELPERS ===
